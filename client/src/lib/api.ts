@@ -64,6 +64,22 @@ async function request<T = any>(path: string, options: RequestInit = {}): Promis
   return data
 }
 
+async function uploadFile(file: File): Promise<string> {
+  const token = localStorage.getItem('token')
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const res = await fetch(`${API_URL}/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  })
+
+  const data = await res.json()
+  if (!res.ok) throw new ApiError(res.status, data.error || 'Upload failed')
+  return data.url
+}
+
 export const api = {
   auth: {
     register: (data: { email: string; password: string; name: string; username: string }) =>
@@ -85,6 +101,7 @@ export const api = {
     update: (data: Partial<Store>) =>
       request<{ store: Store }>('/store', { method: 'PUT', body: JSON.stringify(data) }),
   },
+  upload: uploadFile,
   public: {
     getUser: (username: string) => request<{ user: PublicUser }>(`/u/${username}`),
     getProducts: (username: string) => request<{ products: Product[] }>(`/u/${username}/products`),

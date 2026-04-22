@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
-import { type Product } from '../../lib/api'
+import { useState, useEffect, useRef } from 'react'
+import { type Product, api } from '../../lib/api'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
-import { Plus, X, GripVertical } from 'lucide-react'
+import { Upload, X, ImageOff, Loader2 } from 'lucide-react'
 
 interface ProductFormProps {
   product?: Product | null
@@ -26,9 +26,12 @@ export default function ProductForm({ product, onSubmit, loading }: ProductFormP
   const [originalPrice, setOriginalPrice] = useState('')
   const [affiliateLink, setAffiliateLink] = useState('')
   const [platform, setPlatform] = useState('shopee')
-  const [images, setImages] = useState<string[]>([''])
+  const [images, setImages] = useState<string[]>([])
   const [category, setCategory] = useState('')
   const [featured, setFeatured] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (product) {
@@ -38,18 +41,32 @@ export default function ProductForm({ product, onSubmit, loading }: ProductFormP
       setOriginalPrice(product.originalPrice?.toString() || '')
       setAffiliateLink(product.affiliateLink)
       setPlatform(product.platform)
-      setImages(product.images.length > 0 ? product.images : [''])
+      setImages(product.images || [])
       setCategory(product.category || '')
       setFeatured(product.featured)
     }
   }, [product])
 
-  const addImage = () => setImages([...images, ''])
   const removeImage = (index: number) => setImages(images.filter((_, i) => i !== index))
-  const updateImage = (index: number, value: string) => {
-    const updated = [...images]
-    updated[index] = value
-    setImages(updated)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+    setUploadError('')
+
+    for (const file of Array.from(files)) {
+      try {
+        const url = await api.upload(file)
+        setImages((prev) => [...prev, url])
+      } catch (err: any) {
+        setUploadError(err.message || 'Upload failed')
+      }
+    }
+
+    setUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +78,7 @@ export default function ProductForm({ product, onSubmit, loading }: ProductFormP
       originalPrice: originalPrice ? parseFloat(originalPrice) : null,
       affiliateLink,
       platform,
-      images: images.filter(Boolean),
+      images,
       category: category || null,
       featured,
     })
@@ -141,40 +158,58 @@ export default function ProductForm({ product, onSubmit, loading }: ProductFormP
         </div>
       </div>
 
+      {/* Image Upload */}
       <div>
-        <label className="block text-sm font-medium text-neutral-700 mb-1.5">Product Images (URLs)</label>
-        <div className="space-y-2">
-          {images.map((img, index) => (
-            <div key={index} className="flex gap-2">
-              <div className="flex items-center text-neutral-300">
-                <GripVertical size={16} />
-              </div>
-              <input
-                type="url"
-                value={img}
-                onChange={(e) => updateImage(index, e.target.value)}
-                placeholder={`Image URL ${index + 1}`}
-                className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:border-neutral-500 placeholder:text-neutral-400"
+        <label className="block text-sm font-medium text-neutral-700 mb-1.5">Product Images</label>
+        {uploadError && (
+          <p className="text-sm text-red-600 mb-2">{uploadError}</p>
+        )}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {images.map((url, index) => (
+            <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-neutral-100 group">
+              <img
+                src={url}
+                alt={`Product ${index + 1}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                  ;(e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden')
+                }}
               />
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              )}
+              <div className="hidden w-full h-full flex items-center justify-center">
+                <ImageOff size={20} className="text-neutral-300" />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={14} />
+              </button>
             </div>
           ))}
+
+          <label className="aspect-square rounded-lg border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center cursor-pointer hover:border-neutral-400 hover:bg-neutral-50 transition-colors">
+            {uploading ? (
+              <Loader2 size={22} className="text-neutral-400 animate-spin" />
+            ) : (
+              <>
+                <Upload size={22} className="text-neutral-400 mb-1" />
+                <span className="text-xs text-neutral-500">Upload</span>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+              disabled={uploading}
+            />
+          </label>
         </div>
-        <button
-          type="button"
-          onClick={addImage}
-          className="mt-2 flex items-center gap-1.5 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-        >
-          <Plus size={16} /> Add image
-        </button>
+        <p className="text-xs text-neutral-400 mt-1.5">JPG, PNG, WebP, or GIF. Max 5MB each.</p>
       </div>
 
       <label className="flex items-center gap-3 cursor-pointer">
@@ -188,7 +223,7 @@ export default function ProductForm({ product, onSubmit, loading }: ProductFormP
       </label>
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" loading={loading}>
+        <Button type="submit" loading={loading} disabled={uploading}>
           {product ? 'Update Product' : 'Add Product'}
         </Button>
       </div>
