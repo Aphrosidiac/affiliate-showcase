@@ -20,6 +20,7 @@ export const themes: Record<string, ThemeConfig> = {
       '--theme-accent-hover': '#d4b85c',
       '--theme-border': '#2a2a2a',
       '--theme-card-radius': '2px',
+      '--theme-card-shadow': '0 2px 12px rgba(0,0,0,0.4)',
       '--theme-font': "'Playfair Display', Georgia, serif",
       '--theme-font-body': "'Inter', sans-serif",
     },
@@ -38,6 +39,7 @@ export const themes: Record<string, ThemeConfig> = {
       '--theme-accent-hover': '#ff4d5a',
       '--theme-border': '#333333',
       '--theme-card-radius': '8px',
+      '--theme-card-shadow': '0 2px 12px rgba(0,0,0,0.3)',
       '--theme-font': "'Oswald', 'Impact', sans-serif",
       '--theme-font-body': "'Inter', sans-serif",
     },
@@ -56,6 +58,7 @@ export const themes: Record<string, ThemeConfig> = {
       '--theme-accent-hover': '#33f5ff',
       '--theme-border': '#2a2a5a',
       '--theme-card-radius': '12px',
+      '--theme-card-shadow': '0 2px 16px rgba(0,240,255,0.08)',
       '--theme-font': "'Space Grotesk', monospace",
       '--theme-font-body': "'Space Grotesk', sans-serif",
     },
@@ -65,15 +68,16 @@ export const themes: Record<string, ThemeConfig> = {
     description: 'Clean and simple with lots of whitespace',
     colors: { bg: '#ffffff', accent: '#111111', text: '#111111' },
     vars: {
-      '--theme-bg': '#ffffff',
-      '--theme-bg-secondary': '#f8f8f8',
+      '--theme-bg': '#fafafa',
+      '--theme-bg-secondary': '#f0f0f0',
       '--theme-surface': '#ffffff',
       '--theme-text': '#111111',
       '--theme-text-secondary': '#666666',
       '--theme-accent': '#111111',
       '--theme-accent-hover': '#333333',
       '--theme-border': '#e5e5e5',
-      '--theme-card-radius': '8px',
+      '--theme-card-radius': '12px',
+      '--theme-card-shadow': '0 1px 8px rgba(0,0,0,0.06)',
       '--theme-font': "'Inter', -apple-system, sans-serif",
       '--theme-font-body': "'Inter', -apple-system, sans-serif",
     },
@@ -92,6 +96,7 @@ export const themes: Record<string, ThemeConfig> = {
       '--theme-accent-hover': '#ff8555',
       '--theme-border': '#f0e8df',
       '--theme-card-radius': '16px',
+      '--theme-card-shadow': '0 2px 12px rgba(255,107,53,0.08)',
       '--theme-font': "'Poppins', sans-serif",
       '--theme-font-body': "'Poppins', sans-serif",
     },
@@ -99,3 +104,21 @@ export const themes: Record<string, ThemeConfig> = {
 }
 
 export const themeKeys = Object.keys(themes)
+
+export const platformIcons: Record<string, string> = {
+  shopee: 'S',
+  tiktok: 'T',
+  lazada: 'L',
+  amazon: 'A',
+  tokopedia: 'Tk',
+  other: '',
+}
+
+export const platformColors: Record<string, string> = {
+  shopee: '#EE4D2D',
+  tiktok: '#010101',
+  lazada: '#0F146D',
+  amazon: '#FF9900',
+  tokopedia: '#42B549',
+  other: '#888888',
+}
