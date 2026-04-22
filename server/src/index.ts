@@ -9,7 +9,9 @@ import { userRoutes } from './routes/users.js'
 const app = new Hono()
 
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true,
 }))
 
