@@ -80,6 +80,11 @@ async function uploadFile(file: File): Promise<string> {
   return data.url
 }
 
+export interface ClickStats {
+  totalClicks: number
+  clicksByProduct: Record<string, number>
+}
+
 export const api = {
   auth: {
     register: (data: { email: string; password: string; name: string; username: string }) =>
@@ -87,6 +92,10 @@ export const api = {
     login: (data: { email: string; password: string }) =>
       request<{ token: string; user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
     me: () => request<{ user: User }>('/auth/me'),
+    updateProfile: (data: { name?: string; bio?: string | null; avatar?: string | null }) =>
+      request<{ user: User }>('/auth/profile', { method: 'PUT', body: JSON.stringify(data) }),
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      request<{ success: boolean }>('/auth/password', { method: 'PUT', body: JSON.stringify(data) }),
   },
   products: {
     list: () => request<{ products: Product[] }>('/products'),
@@ -95,6 +104,9 @@ export const api = {
     update: (id: string, data: Partial<Product>) =>
       request<{ product: Product }>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request(`/products/${id}`, { method: 'DELETE' }),
+    reorder: (items: { id: string; displayOrder: number }[]) =>
+      request('/products/reorder', { method: 'PUT', body: JSON.stringify(items) }),
+    stats: () => request<ClickStats>('/products/stats'),
   },
   store: {
     get: () => request<{ store: Store }>('/store'),
@@ -106,5 +118,7 @@ export const api = {
     getUser: (username: string) => request<{ user: PublicUser }>(`/u/${username}`),
     getProducts: (username: string) => request<{ products: Product[] }>(`/u/${username}/products`),
     getProduct: (username: string, id: string) => request<{ product: Product }>(`/u/${username}/product/${id}`),
+    trackClick: (username: string, productId: string) =>
+      request(`/u/${username}/product/${productId}/click`, { method: 'POST' }),
   },
 }

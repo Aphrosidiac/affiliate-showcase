@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Product } from '../lib/api'
 import Button from '../components/ui/Button'
-import { Plus, Package, Pencil, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, Package, Pencil, Trash2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 
 export default function DashboardProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [reordering, setReordering] = useState(false)
 
   useEffect(() => {
     api.products.list()
@@ -31,6 +32,22 @@ export default function DashboardProducts() {
       setProducts(products.filter((p) => p.id !== id))
     } catch {}
     setDeleting(null)
+  }
+
+  const moveProduct = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= products.length) return
+
+    const updated = [...products]
+    const [moved] = updated.splice(index, 1)
+    updated.splice(newIndex, 0, moved)
+    setProducts(updated)
+
+    setReordering(true)
+    try {
+      await api.products.reorder(updated.map((p, i) => ({ id: p.id, displayOrder: i })))
+    } catch {}
+    setReordering(false)
   }
 
   if (loading) {
@@ -64,9 +81,30 @@ export default function DashboardProducts() {
         </div>
       ) : (
         <div className="space-y-3">
-          {products.map((product) => (
+          {reordering && (
+            <p className="text-xs text-neutral-400">Saving order...</p>
+          )}
+          {products.map((product, index) => (
             <div key={product.id} className="bg-white rounded-xl border border-neutral-200 p-4">
               <div className="flex items-center gap-3">
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => moveProduct(index, 'up')}
+                    disabled={index === 0 || reordering}
+                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => moveProduct(index, 'down')}
+                    disabled={index === products.length - 1 || reordering}
+                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+
                 <div className="w-14 h-14 rounded-lg bg-neutral-100 overflow-hidden flex-shrink-0">
                   {product.images[0] ? (
                     <img src={product.images[0]} alt="" className="w-full h-full object-cover" />

@@ -34,20 +34,31 @@ model Store {
 }
 
 model Product {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
   name          String
   description   String?
   price         Float
   originalPrice Float?
   affiliateLink String
-  platform      String   @default("other")
+  platform      String         @default("other")
   images        String
   category      String?
-  featured      Boolean  @default(false)
-  active        Boolean  @default(true)
-  displayOrder  Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  featured      Boolean        @default(false)
+  active        Boolean        @default(true)
+  displayOrder  Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  clicks        ProductClick[]
+}
+
+model ProductClick {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
 }

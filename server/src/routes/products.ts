@@ -29,9 +29,32 @@ productRoutes.get('/', async (c) => {
   const user = c.get('user') as AuthUser
   const products = await prisma.product.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
   })
   return c.json({ products: products.map(parseProduct) })
+})
+
+productRoutes.get('/stats', async (c) => {
+  const user = c.get('user') as AuthUser
+  const products = await prisma.product.findMany({
+    where: { userId: user.id },
+    select: { id: true },
+  })
+  const productIds = products.map((p) => p.id)
+
+  const clicks = await prisma.productClick.groupBy({
+    by: ['productId'],
+    where: { productId: { in: productIds } },
+    _count: { id: true },
+  })
+
+  const totalClicks = clicks.reduce((sum, c) => sum + c._count.id, 0)
+  const clickMap: Record<string, number> = {}
+  clicks.forEach((c) => {
+    clickMap[c.productId] = c._count.id
+  })
+
+  return c.json({ totalClicks, clicksByProduct: clickMap })
 })
 
 productRoutes.post('/', async (c) => {
@@ -74,6 +97,27 @@ productRoutes.put('/:id', async (c) => {
 
   const product = await prisma.product.update({ where: { id }, data })
   return c.json({ product: parseProduct(product) })
+})
+
+const reorderSchema = z.array(z.object({ id: z.string(), displayOrder: z.number() }))
+
+productRoutes.put('/reorder', async (c) => {
+  const user = c.get('user') as AuthUser
+  const body = await c.req.json()
+  const result = reorderSchema.safeParse(body)
+  if (!result.success) {
+    return c.json({ error: 'Invalid input' }, 400)
+  }
+
+  await Promise.all(
+    result.data.map((item) =>
+      prisma.product.updateMany({
+        where: { id: item.id, userId: user.id },
+        data: { displayOrder: item.displayOrder },
+      })
+    )
+  )
+  return c.json({ success: true })
 })
 
 productRoutes.delete('/:id', async (c) => {

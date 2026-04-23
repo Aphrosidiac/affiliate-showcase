@@ -94,3 +94,53 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   }
   return c.json({ user })
 })
+
+const profileSchema = z.object({
+  name: z.string().min(1).optional(),
+  bio: z.string().optional().nullable(),
+  avatar: z.string().optional().nullable(),
+})
+
+authRoutes.put('/profile', authMiddleware, async (c) => {
+  const authUser = c.get('user') as AuthUser
+  const body = await c.req.json()
+  const result = profileSchema.safeParse(body)
+  if (!result.success) {
+    return c.json({ error: 'Invalid input' }, 400)
+  }
+
+  const user = await prisma.user.update({
+    where: { id: authUser.id },
+    data: result.data,
+    select: { id: true, email: true, name: true, username: true, bio: true, avatar: true },
+  })
+  return c.json({ user })
+})
+
+const passwordSchema = z.object({
+  currentPassword: z.string(),
+  newPassword: z.string().min(6),
+})
+
+authRoutes.put('/password', authMiddleware, async (c) => {
+  const authUser = c.get('user') as AuthUser
+  const body = await c.req.json()
+  const result = passwordSchema.safeParse(body)
+  if (!result.success) {
+    return c.json({ error: 'Invalid input' }, 400)
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: authUser.id } })
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+
+  const valid = await bcrypt.compare(result.data.currentPassword, user.password)
+  if (!valid) {
+    return c.json({ error: 'Current password is incorrect' }, 400)
+  }
+
+  const hashedPassword = await bcrypt.hash(result.data.newPassword, 10)
+  await prisma.user.update({ where: { id: authUser.id }, data: { password: hashedPassword } })
+  return c.json({ success: true })
+})

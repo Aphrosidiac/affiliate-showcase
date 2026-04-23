@@ -68,3 +68,26 @@ userRoutes.get('/:username/product/:id', async (c) => {
   }
   return c.json({ product: { ...product, images: JSON.parse(product.images) } })
 })
+
+userRoutes.post('/:username/product/:id/click', async (c) => {
+  const username = c.req.param('username')
+  const id = c.req.param('id')
+
+  const user = await prisma.user.findUnique({
+    where: { username },
+    select: { id: true },
+  })
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+
+  const product = await prisma.product.findFirst({
+    where: { id, userId: user.id, active: true },
+  })
+  if (!product) {
+    return c.json({ error: 'Product not found' }, 404)
+  }
+
+  await prisma.productClick.create({ data: { productId: id } })
+  return c.json({ success: true })
+})

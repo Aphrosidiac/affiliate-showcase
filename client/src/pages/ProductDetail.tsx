@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api, type PublicUser, type Product } from '../lib/api'
 import ThemedLayout from '../components/showcase/ThemedLayout'
 import ImageCarousel from '../components/showcase/ImageCarousel'
-import { ArrowLeft, ExternalLink, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ExternalLink, ShoppingBag, Share2, Check } from 'lucide-react'
+import { useSEO } from '../hooks/useSEO'
 
 const platformLabels: Record<string, string> = {
   shopee: 'Shopee',
@@ -21,6 +22,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!username || !id) return
@@ -32,6 +34,25 @@ export default function ProductDetail() {
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [username, id])
+
+  const handleShare = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product?.name || 'Product', url })
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleAffiliateCick = () => {
+    if (username && id) {
+      api.public.trackClick(username, id).catch(() => {})
+    }
+  }
 
   if (loading) {
     return (
@@ -55,6 +76,14 @@ export default function ProductDetail() {
 
   const theme = user.store?.theme || 'minimal'
   const platformLabel = platformLabels[product.platform] || 'Store'
+
+  useSEO({
+    title: product.name,
+    description: product.description || `RM ${product.price.toFixed(2)} — Available on ${platformLabel}`,
+    image: product.images[0] || undefined,
+    url: window.location.href,
+  })
+
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null
@@ -62,13 +91,25 @@ export default function ProductDetail() {
   return (
     <ThemedLayout theme={theme}>
       <div className="max-w-2xl mx-auto">
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(`/${username}`)}
             className="flex items-center gap-2 text-sm transition-colors"
             style={{ color: 'var(--theme-text-secondary)' }}
           >
             <ArrowLeft size={16} /> Back
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
+            style={{
+              backgroundColor: 'var(--theme-bg-secondary)',
+              color: 'var(--theme-text-secondary)',
+              border: '1px solid var(--theme-border)',
+            }}
+          >
+            {copied ? <Check size={13} /> : <Share2 size={13} />}
+            {copied ? 'Copied' : 'Share'}
           </button>
         </div>
 
@@ -130,6 +171,7 @@ export default function ProductDetail() {
               href={product.affiliateLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={handleAffiliateCick}
               className="flex items-center justify-center gap-2 w-full py-4 px-6 text-base font-semibold transition-all duration-200 active:scale-[0.98]"
               style={{
                 backgroundColor: 'var(--theme-accent)',

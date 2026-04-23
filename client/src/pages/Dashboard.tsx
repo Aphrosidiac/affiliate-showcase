@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { api, type Product, type Store } from '../lib/api'
-import { Package, Plus, Palette, Eye } from 'lucide-react'
+import { api, type Product, type Store, type ClickStats } from '../lib/api'
+import { Package, Plus, Palette, Eye, MousePointerClick } from 'lucide-react'
 import Button from '../components/ui/Button'
 
 export default function Dashboard() {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [store, setStore] = useState<Store | null>(null)
+  const [stats, setStats] = useState<ClickStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([api.products.list(), api.store.get()])
-      .then(([prodData, storeData]) => {
+    Promise.all([api.products.list(), api.store.get(), api.products.stats()])
+      .then(([prodData, storeData, statsData]) => {
         setProducts(prodData.products)
         setStore(storeData.store)
+        setStats(statsData)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -36,11 +38,12 @@ export default function Dashboard() {
         <p className="text-neutral-500 mt-1">Here's an overview of your showcase</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {[
           { label: 'Total Products', value: products.length, icon: Package },
           { label: 'Active', value: products.filter((p) => p.active).length, icon: Eye },
           { label: 'Featured', value: products.filter((p) => p.featured).length, icon: Package },
+          { label: 'Total Clicks', value: stats?.totalClicks ?? 0, icon: MousePointerClick },
           { label: 'Theme', value: store?.theme || 'minimal', icon: Palette },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-white p-4 rounded-xl border border-neutral-200">
@@ -75,32 +78,40 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-neutral-200 divide-y divide-neutral-100">
-            {products.slice(0, 5).map((product) => (
-              <Link
-                key={product.id}
-                to={`/dashboard/products/${product.id}/edit`}
-                className="flex items-center gap-4 p-4 hover:bg-neutral-50 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden flex-shrink-0">
-                  {product.images[0] ? (
-                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-300">
-                      <Package size={18} />
-                    </div>
+            {products.slice(0, 5).map((product) => {
+              const clicks = stats?.clicksByProduct[product.id] ?? 0
+              return (
+                <Link
+                  key={product.id}
+                  to={`/dashboard/products/${product.id}/edit`}
+                  className="flex items-center gap-4 p-4 hover:bg-neutral-50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden flex-shrink-0">
+                    {product.images[0] ? (
+                      <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-neutral-300">
+                        <Package size={18} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">{product.name}</p>
+                    <p className="text-xs text-neutral-500">RM {product.price.toFixed(2)} · {product.platform}</p>
+                  </div>
+                  {clicks > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-neutral-500 flex-shrink-0">
+                      <MousePointerClick size={12} /> {clicks}
+                    </span>
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-neutral-900 truncate">{product.name}</p>
-                  <p className="text-xs text-neutral-500">RM {product.price.toFixed(2)} · {product.platform}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  product.active ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-500'
-                }`}>
-                  {product.active ? 'Active' : 'Draft'}
-                </span>
-              </Link>
-            ))}
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    product.active ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-500'
+                  }`}>
+                    {product.active ? 'Active' : 'Draft'}
+                  </span>
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
