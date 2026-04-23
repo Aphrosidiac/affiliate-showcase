@@ -139,7 +139,7 @@ export default function Showcase() {
                   src={user.avatar}
                   alt={storeName}
                   className="w-20 h-20 rounded-full mx-auto mb-4 object-cover ring-2"
-                  style={{ ringColor: 'var(--theme-border)' }}
+                  style={{ ['--tw-ring-color' as string]: 'var(--theme-border)' } as React.CSSProperties}
                 />
               ) : (
                 <div
